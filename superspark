@@ -163,35 +163,67 @@ main() {
 }
 
 spark() {
-    (test -t 0 && echo "$@" || cat) \
-    | xargs -n1 \
-    | php -r '
-        $S=array_map("intval",file("php://stdin"));
-        $M=array_reduce($S, "max", 0);
-        $m=array_reduce($S, "min", $M);
-        $R=array_map(function($I) use ($M) {
-            return $I/max(1,$M);
-        }, $S);
-        $CNT=count($S);
-        $C=end($S);
-        $mean=array_sum($S)/$CNT;
-        $COLORS="'$COLORS'";
-        function colorCode($F) {
-            $C = array(198,199,199,164,164,129,129,93,63,63,33,33,39,38,44,43,49,48,48,83);
-            $M = count($C);
-            return "38;5;".$C[ceil(($F)*($M-1))];
-        }
-        $L="'$LEGEND'"=="yes"?"\033[K ".sprintf("\033[%smmin\033[0m: %-6d \033[%smmax\033[0m: %-6d \033[%smcurr\033[0m: %-6d \033[%smmean\033[0m: %-8.2f",
-            colorCode(0), $m,
-            colorCode(1), $M,
-            colorCode($C/max(1,$M)), $C,
-            colorCode($mean/max(1,$M)), $mean)."\n":"";
-        print preg_replace($COLORS=="yes"?"||":"|\\033\\[[\\d;]+m|","",str_repeat("\033[K\n",3)."\033[K ".implode(array_map(function($F,$V,$I)use($m,$M,$CNT){
-            # $CC=($V===$m)?"31;1":($V===$M?"32;1":(($I+1)==$CNT?"33;1":0));
-            $CC = colorCode($F);
-            return "\033[{$CC}m".json_decode("\" ".str_repeat("\u0304", max(0,ceil($F*18))+1)."\"")."\033[0m";
-        }, $R,$S,array_keys($R)), "")."\n".$L);
-        '
+    if [ -t 0 ]; then
+      input=("$@")
+    else
+      input=($(</dev/stdin))
+    fi
+
+    min=${input[0]}
+    max=${input[0]}
+    sum=0
+
+    colorCode() {
+      if [ "$COLORS" != "yes" ]; then
+        echo -n "0"
+      else
+        colors=( 198 199 199 164 164 129 129 93 63 63 33 33 39 38 44 43 49 48 48 83 )
+        index=$(bc -l <<< "scale=0;((${#colors[*]} - 1) * $1) / 1")
+        echo -n "38;5;${colors[index]}"
+      fi
+    }
+
+    for LINE in ${input[*]}; do
+      sum=$((sum + LINE))
+      if [ "$LINE" -lt "$min" ]; then
+        min=$LINE
+      fi
+
+      if [ "$LINE" -gt "$max" ]; then
+        max=$LINE
+      fi
+    done
+
+    OUTPUT="\033[K\n\033[K\n\033[K\n\033[K "
+
+    declare -a normed
+    for LINE in ${input[*]}; do
+      if [ "$max" -lt "1" ]; then
+        tmax=1
+      else
+        tmax=$max
+      fi
+      normed=$(bc -l <<< "$LINE/$tmax")
+      count=$(bc -l <<< "scale=0;$normed * 18 / 1")
+      OUTPUT="$OUTPUT$(printf "\033[%sm " "$(colorCode "$normed")")"
+      for _ in $(seq 0 "$count"); do
+        OUTPUT="$OUTPUT\xcc\x84"
+      done
+      OUTPUT="$OUTPUT\033[0m"
+    done
+
+    if [ "$LEGEND" = "yes" ]; then
+      mean=$(bc -l <<< "$sum/${#input[*]}")
+      cur=${input[$((${#input[*]} - 1))]}
+
+      OUTPUT="$OUTPUT\n "
+      OUTPUT="$OUTPUT$(printf "\033[%smmin\033[0m: %-6d " "$(colorCode 0)" "$min")"
+      OUTPUT="$OUTPUT$(printf "\033[%smmax\033[0m: %-6d " "$(colorCode 1)" "$max")"
+      OUTPUT="$OUTPUT$(printf "\033[%smcurr\033[0m: %-6d " "$(colorCode "$(bc -l <<< "$cur/$tmax")")" "$cur")"
+      OUTPUT="$OUTPUT$(printf "\033[%smmean\033[0m: %-8.2f" "$(colorCode "$(bc -l <<< "$mean/$tmax")")" "$mean")"
+    fi
+
+    echo -e "$OUTPUT"
 }
 
 main "$@"
