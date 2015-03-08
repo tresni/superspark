@@ -5,15 +5,15 @@ Superspark
 
 Inspired by [Zach Holman][]'s [spark][], it brings sparklines, with greater detail, to your shell.
 
-See the demo: 
+See the demo:
 
-![](https://raw.github.com/muhqu/superspark/master/demo.gif)
+![](demo.gif)
 
 
 install
 -------
 
-`superspark` is a [shell script][source] that wraps arround a tiny [php][] command line script. For it to run you need php 5.3 (or above) and need to place the script somewhere on your `$PATH`.
+`superspark` is a [shell script][source]. For it to run you need bash and bc (both are generally installed on Linux and BSD systems by default) and need to place the script somewhere on your `$PATH`.
 
 ```bash
 wget https://raw.github.com/muhqu/superspark/master/superspark \
@@ -83,11 +83,10 @@ who?
 |   |   |
 |---|---|
 | ![](http://gravatar.com/avatar/0ad964bc2b83e0977d8f70816eda1c70) | © 2013 by Mathias Leppich <br>  [github.com/muhqu](https://github.com/muhqu), [@muhqu](http://twitter.com/muhqu) |
-|   |   |
+|   | © 2015 by Brian Hartvigsen <br>[github.com/tresni](https://github.com/tresni), [@tresni](http://twitter.com/tresni)  |
 
 
-[source]: https://github.com/muhqu/superspark/blob/master/superspark
-[php]: http://www.php.net
+[source]: superspark
 [Zach Holman]: https://github.com/holman
 [spark]: https://github.com/holman/spark
 [combining character]: http://en.wikipedia.org/wiki/Combining_character
